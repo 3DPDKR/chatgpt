@@ -29,7 +29,7 @@ jobs:
         run: |
           set -euxo pipefail
           FLUTTER_BIN="$(readlink -f "$(command -v flutter)")"
-          FLUTTER_ROOT="$(dirname "$(dirname "$FLUTTER_BIN")")"
+          export FLUTTER_ROOT="$(dirname "$(dirname "$FLUTTER_BIN")")"
           export PUB_CACHE="$GITHUB_WORKSPACE/portable-pub-cache"
           mkdir -p "$PUB_CACHE"
           "$FLUTTER_ROOT/bin/cache/dart-sdk/bin/dart" --version
@@ -54,9 +54,9 @@ jobs:
               raise SystemExit(1)
           cache_packages = list((root / 'hosted').rglob('pubspec.yaml')) if (root / 'hosted').exists() else []
           print(f"portable cache package pubspec files={len(cache_packages)}")
+          if not cache_packages:
+              raise SystemExit('Portable Pub cache is empty')
           PY
-        env:
-          FLUTTER_ROOT: /tmp/placeholder
 
       - name: Normalize and package cache
         shell: bash
