@@ -15,17 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Concatenate repository payloads
+      - name: Concatenate repository text payloads
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p exported
           cat build_payload/part-* > exported/repository-overlay.b64
-          base64 --decode exported/repository-overlay.b64 > exported/repository-overlay.tar.gz
           cat build_icon/part-* > exported/repository-icon.b64
-          base64 --decode exported/repository-icon.b64 > exported/repository-icon.png
-          sha256sum exported/* | tee exported/SHA256SUMS.txt
-          wc -c exported/* | tee exported/SIZES.txt
+          sha256sum exported/*.b64 | tee exported/SHA256SUMS.txt
+          wc -c exported/*.b64 | tee exported/SIZES.txt
       - name: Upload repository payload copies
         uses: actions/upload-artifact@v4
         with:
