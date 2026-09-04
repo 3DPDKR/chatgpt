@@ -49,7 +49,8 @@ jobs:
           cat build_payload/part-* | base64 --decode > overlay.tar.gz
           sha256sum overlay.tar.gz
           echo "f9a268fb0bbf397320ed1b4d2eb3c088fd54bd9b267ec5698f422a9c3803bc71  overlay.tar.gz" | sha256sum --check --strict
-          tar -tzf overlay.tar.gz | head -n 30
+          tar -tzf overlay.tar.gz > overlay-contents.txt
+          sed -n '1,30p' overlay-contents.txt
 
       - name: Reconstruct app icon
         shell: bash
