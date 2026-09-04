@@ -1,0 +1,66 @@
+name: KANG Payload Diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/payload-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: List chunks
+        shell: bash
+        run: |
+          set -euxo pipefail
+          find build_payload -maxdepth 1 -type f -name 'part-*' -printf '%f %s bytes\n' | sort
+          find build_icon -maxdepth 1 -type f -name 'part-*' -printf '%f %s bytes\n' | sort
+
+      - name: Decode source payload
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat build_payload/part-* > overlay.b64
+          wc -c overlay.b64
+          base64 --decode overlay.b64 > overlay.tar.gz
+          stat -c '%s bytes' overlay.tar.gz
+
+      - name: Verify source payload hash
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sha256sum overlay.tar.gz
+          echo 'f9a268fb0bbf397320ed1b4d2eb3c088fd54bd9b267ec5698f422a9c3803bc71  overlay.tar.gz' | sha256sum --check --strict
+
+      - name: Validate source archive
+        shell: bash
+        run: |
+          set -euxo pipefail
+          gzip -t overlay.tar.gz
+          tar -tzf overlay.tar.gz > overlay-contents.txt
+          wc -l overlay-contents.txt
+          sed -n '1,30p' overlay-contents.txt
+
+      - name: Decode icon payload
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat build_icon/part-* > icon.b64
+          wc -c icon.b64
+          base64 --decode icon.b64 > icon.png
+          stat -c '%s bytes' icon.png
+
+      - name: Verify icon payload hash
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sha256sum icon.png
+          echo 'f4bcbdd5e04046fb32621439f9324be25d4c7938f88b5bf9d27a2762ead8e89e  icon.png' | sha256sum --check --strict
+          file icon.png
