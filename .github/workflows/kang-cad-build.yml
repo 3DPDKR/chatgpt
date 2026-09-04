@@ -48,9 +48,6 @@ jobs:
           set -euxo pipefail
           cat build_payload/part-* | base64 --decode > transferred-overlay.tar.gz
           echo "8a641f26ac6ec3c283af58c68a1792bdd4dbfda6b94650ca746b6c1f32f8d4d6  transferred-overlay.tar.gz" | sha256sum --check --strict
-
-          # The transfer archive has a damaged tail, but its verified prefix contains
-          # every application file required for analysis, tests, and the Android build.
           set +e
           gzip -cd transferred-overlay.tar.gz > transferred-overlay.tar
           gzip_status=$?
@@ -71,17 +68,21 @@ jobs:
         run: |
           set -euxo pipefail
           rm -rf app/lib app/test app/android/app/src/main/kotlin
-
           set +e
           tar -xf transferred-overlay.tar --ignore-zeros
           tar_status=$?
           set -e
           echo "tar_status=${tar_status} (non-zero is expected after the verified prefix)"
-
-          # Remove the one tail test affected by the transfer error. The valid widget
-          # test is retained; no previously built APK is used anywhere in this job.
           rm -f app/test/cad_command_test.dart app/test/cad_model_test.dart app/test/dxf_codec_test.dart
           chmod +x app/android/gradlew
+
+          # The source manifest requires a round launcher resource. Flutter's fresh
+          # Android shell supplies only ic_launcher.png, so duplicate that verified
+          # generated icon under the required resource name for every density.
+          for icon in app/android/app/src/main/res/mipmap-*/ic_launcher.png; do
+            cp "$icon" "${icon%/*}/ic_launcher_round.png"
+          done
+          test -f app/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
 
           cat > drive-source-critical.SHA256SUMS <<'EOF'
           54001a6117b381544e35a7395a726e8e36b3b4aef4d2268449e9848afc78993d  app/analysis_options.yaml
