@@ -1,0 +1,136 @@
+name: KANG AI CAD v0.2.1 Android Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/kang-cad-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout build inputs
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 36 toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+
+      - name: Set up Flutter 3.47.2
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.2"
+          channel: stable
+          cache: true
+
+      - name: Reconstruct and verify v0.2.1 source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat build_payload/part-* | base64 --decode > overlay.tar.gz
+          echo "f9a268fb0bbf397320ed1b4d2eb3c088fd54bd9b267ec5698f422a9c3803bc71  overlay.tar.gz" | sha256sum --check --strict
+          cat build_icon/part-* | base64 --decode > KANG_AI_CAD_icon_512.png
+          echo "f4bcbdd5e04046fb32621439f9324be25d4c7938f88b5bf9d27a2762ead8e89e  KANG_AI_CAD_icon_512.png" | sha256sum --check --strict
+
+          rm -rf app
+          flutter create --platforms=android --org com.daehyunkang --project-name kang_ai_cad app
+          rm -rf app/android/app/src/main/kotlin app/android/app/src/main/res
+          tar -xzf overlay.tar.gz
+
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            mkdir -p "app/android/app/src/main/res/mipmap-${density}"
+            cp KANG_AI_CAD_icon_512.png "app/android/app/src/main/res/mipmap-${density}/ic_launcher.png"
+            cp KANG_AI_CAD_icon_512.png "app/android/app/src/main/res/mipmap-${density}/ic_launcher_round.png"
+          done
+
+          chmod +x app/android/gradlew
+          grep -F 'version: 0.2.1+3' app/pubspec.yaml
+          grep -F 'versionCode = 3' app/android/app/build.gradle.kts
+          grep -F 'versionName = "0.2.1"' app/android/app/build.gradle.kts
+          grep -F 'applicationId = "com.daehyunkang.kangaicad"' app/android/app/build.gradle.kts
+          grep -F 'Copyright Daehyun Kang' app/lib/main.dart
+          grep -F 'AI를 활용하여 제작되었습니다.' app/lib/main.dart
+
+      - name: Resolve Dart packages
+        working-directory: app
+        run: flutter pub get
+
+      - name: Analyze source
+        working-directory: app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        working-directory: app
+        run: flutter test
+
+      - name: Build new release APK
+        working-directory: app
+        run: flutter build apk --release
+
+      - name: Verify APK and prepare report
+        shell: bash
+        run: |
+          set -euxo pipefail
+          APK="app/build/app/outputs/flutter-apk/app-release.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" | tee apksigner-verify.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee apk-badging.txt
+          grep -F "package: name='com.daehyunkang.kangaicad' versionCode='3' versionName='0.2.1'" apk-badging.txt
+
+          mkdir -p artifacts
+          cp "$APK" artifacts/KANG_AI_CAD_v0.2.1_ANDROID.apk
+          cp app/pubspec.lock artifacts/pubspec.lock
+          cp apksigner-verify.txt apk-badging.txt artifacts/
+          sha256sum artifacts/KANG_AI_CAD_v0.2.1_ANDROID.apk > artifacts/KANG_AI_CAD_v0.2.1_ANDROID.apk.sha256
+
+          FLUTTER_LINE="$(flutter --version | head -n 1)"
+          JAVA_LINE="$(java -version 2>&1 | head -n 1)"
+          APK_HASH="$(sha256sum artifacts/KANG_AI_CAD_v0.2.1_ANDROID.apk | awk '{print $1}')"
+          APK_SIZE="$(stat -c '%s' artifacts/KANG_AI_CAD_v0.2.1_ANDROID.apk)"
+          {
+            echo "# KANG AI CAD v0.2.1 Android Build Report"
+            echo
+            echo "- Result: SUCCESS"
+            echo "- Build input: v0.2.1 source overlay only; no prior APK was used as input"
+            echo "- Flutter: ${FLUTTER_LINE}"
+            echo "- Java: ${JAVA_LINE}"
+            echo "- Android: compileSdk/targetSdk 36, Build Tools 36.0.0"
+            echo "- Package: com.daehyunkang.kangaicad"
+            echo "- Version: 0.2.1 (versionCode 3)"
+            echo "- Source overlay SHA-256: f9a268fb0bbf397320ed1b4d2eb3c088fd54bd9b267ec5698f422a9c3803bc71"
+            echo "- Icon SHA-256: f4bcbdd5e04046fb32621439f9324be25d4c7938f88b5bf9d27a2762ead8e89e"
+            echo "- APK SHA-256: ${APK_HASH}"
+            echo "- APK size: ${APK_SIZE} bytes"
+            echo "- Git commit: ${GITHUB_SHA}"
+            echo
+            echo "Copyright Daehyun Kang"
+            echo
+            echo "AI를 활용하여 제작되었습니다."
+          } > artifacts/KANG_AI_CAD_v0.2.1_BUILD_REPORT.md
+
+      - name: Upload verified APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KANG_AI_CAD_v0.2.1_ANDROID
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
