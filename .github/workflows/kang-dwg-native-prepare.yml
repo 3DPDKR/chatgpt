@@ -19,7 +19,7 @@ jobs:
           curl -fL --retry 3 https://github.com/LibreDWG/libredwg/archive/a3d51f13f7afc143c2adb87d4b0e858e24cdac95.tar.gz -o libredwg.tar.gz
           tar -xzf libredwg.tar.gz
           mv libredwg-* libredwg
-          grep -n "dwg_write_json" libredwg/src/out_json.h
+          grep -n "dwg_write_dxf" libredwg/src/out_dxf.h
           grep -n "dwg_read_file" libredwg/include/dwg.h libredwg/src/dwg.c | head
       - name: Configure Android arm64
         shell: bash
@@ -51,10 +51,10 @@ jobs:
           #include <stdlib.h>
           #include <string.h>
           #include "dwg.h"
-          #include "out_json.h"
+          #include "out_dxf.h"
 
           JNIEXPORT jstring JNICALL
-          Java_com_kangsoft_kangaicad_DwgBridge_readDwgJson(JNIEnv *env, jobject thiz, jstring jpath) {
+          Java_com_kangsoft_kangaicad_DwgBridge_readDwgDxf(JNIEnv *env, jobject thiz, jstring jpath) {
             (void)thiz;
             if (!jpath) return NULL;
             const char *path = (*env)->GetStringUTFChars(env, jpath, NULL);
@@ -75,21 +75,21 @@ jobs:
             if (!mem) {
               dwg_free(&dwg);
               jclass ex = (*env)->FindClass(env, "java/io/IOException");
-              (*env)->ThrowNew(env, ex, "DWG JSON buffer failed");
+              (*env)->ThrowNew(env, ex, "DWG DXF buffer failed");
               return NULL;
             }
             Bit_Chain dat;
             memset(&dat, 0, sizeof(dat));
             dat.fh = mem;
             dat.version = dwg.header.version;
-            int werr = dwg_write_json(&dat, &dwg);
+            int werr = dwg_write_dxf(&dat, &dwg);
             fflush(mem);
             fclose(mem);
             dwg_free(&dwg);
             if (werr >= DWG_ERR_CRITICAL || !buf) {
               free(buf);
               jclass ex = (*env)->FindClass(env, "java/io/IOException");
-              (*env)->ThrowNew(env, ex, "DWG JSON export failed");
+              (*env)->ThrowNew(env, ex, "DWG to DXF conversion failed");
               return NULL;
             }
             jstring out = (*env)->NewStringUTF(env, buf);
@@ -104,7 +104,8 @@ jobs:
           test -n "$LIB"
           "$TC/aarch64-linux-android24-clang" -shared -fPIC -O2 \
             -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
-            -Ilibredwg/include -Ilibredwg/src -Ibuild-dwg \
+            -Ilibredwg/include -Ilibredwg/src -Ibuild-dwg -Ibuild-dwg/src -Ibuild-dwg/include \
+            -I"$(dirname "$(find build-dwg -name config.h | head -1)")" \
             kang_dwg_jni.c "$LIB" \
             -Wl,-z,max-page-size=16384 -llog -lm -lz \
             -o libkang_dwg.so
