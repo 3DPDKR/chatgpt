@@ -1,0 +1,19 @@
+name: KANG Current MainActivity IO Inspect
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/kang-mainactivity-io-inspect.yml"]
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 2 "https://drive.usercontent.google.com/download?id=1YB8O4DhkQ7xV7W3mNm18shhFuwtyhbpk&export=download&confirm=t" -o src.zip
+          mkdir src && unzip -q src.zip -d src
+          F=src/KANG_AI_CAD_MONOREPO/MAIN/app/android/app/src/main/kotlin/com/kangsoft/kangaicad/MainActivity.kt
+          grep -nE "requestCode == openRequest|openRequest|read.*File|writePendingSave|onActivityResult|private fun" "$F" | head -300
+          sed -n '150,620p' "$F"
