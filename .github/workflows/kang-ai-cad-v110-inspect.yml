@@ -38,11 +38,28 @@ jobs:
           grep -RInE "DWG|dwg|DXF|dxf|STEP|step|STL|stl|SAF|openFile|file.*open" src --include='*.dart' --include='*.kt' --include='*.kts' | head -700 || true
           echo "=== RELEVANT FILES ==="
           find src -type f \( -name 'home_page*.dart' -o -name 'app_identity.dart' -o -name 'android_file_bridge.dart' -o -name 'pubspec.yaml' -o -name 'build.gradle.kts' -o -name 'MainActivity.kt' \) -print
-      - name: Print relevant sources
+      - name: Inspect viewer/native integration points
         shell: bash
         run: |
           set -euo pipefail
-          for f in $(find src -type f \( -name 'home_page_v100.dart' -o -name 'home_page.dart' -o -name 'app_identity.dart' -o -name 'android_file_bridge.dart' -o -name 'pubspec.yaml' -o -name 'build.gradle.kts' -o -name 'MainActivity.kt' \)); do
-            echo "===== FILE: $f ====="
-            sed -n '1,260p' "$f"
-          done
+          ROOT=src/KANG_AI_CAD_MONOREPO
+          echo "===== CAD2D constructor and tools ====="
+          grep -nE "class Cad2DEditor|enum .*Tool|measure|Measure|layer|Layer|fit|Fit|zoom|Zoom|pan|Pan|CustomPaint" "$ROOT/CAD2D/lib/src/cad2d_editor.dart" | head -400 || true
+          echo "===== CAD2D head ====="
+          sed -n '1,240p' "$ROOT/CAD2D/lib/src/cad2d_editor.dart"
+          echo "===== CAD2D toolbar region ====="
+          sed -n '1100,1580p' "$ROOT/CAD2D/lib/src/cad2d_editor.dart"
+          echo "===== CAD2D painter ====="
+          sed -n '1,360p' "$ROOT/RENDERER/lib/src/cad2d_painter.dart"
+          echo "===== DXF codec ====="
+          sed -n '1,360p' "$ROOT/FILE_IO/lib/src/dxf_codec.dart"
+          echo "===== document entities ====="
+          sed -n '1,340p' "$ROOT/CORE/lib/src/cad_document.dart"
+          echo "===== capability registry ====="
+          cat "$ROOT/CORE/lib/src/capability_registry.dart"
+          echo "===== native tree ====="
+          find "$ROOT/NATIVE" -maxdepth 2 -type f -print
+          echo "===== native cmake/bridge ====="
+          for f in $(find "$ROOT/NATIVE" -maxdepth 2 -type f \( -name 'CMakeLists.txt' -o -name '*.cxx' -o -name '*.hxx' \)); do echo "---- $f ----"; sed -n '1,260p' "$f"; done
+          echo "===== StepBridge ====="
+          cat "$ROOT/MAIN/app/android/app/src/main/kotlin/com/kangsoft/kangaicad/StepBridge.kt"
