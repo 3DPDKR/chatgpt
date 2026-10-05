@@ -1,0 +1,50 @@
+name: KANG AI CAD v1.1.0 Deep Source Diff
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/kang-ai-cad-v110-deep.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch exact Drive sources
+        env:
+          CUR_URL: 'https://sdmntprkoreacentral.oaiusercontent.com/files/00000000-9464-8206-bf5f-522bd01c751a/raw?se=2026-10-05T03%3A01%3A05Z&sp=r&sv=2026-02-06&sr=b&scid=4a521958-74f7-5996-8411-a8eb51158343&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T23%3A18%3A33Z&ske=2026-10-05T23%3A18%3A33Z&sks=b&skv=2026-02-06&sig=sPy1HpXJA5PcnSZgXProOxtzSduhHYzP7knzfU%2B0Ats%3D'
+          OLD_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-dcd8-8209-9044-e646ad55a521/raw?se=2026-10-05T03%3A01%3A07Z&sp=r&sv=2026-02-06&sr=b&scid=65658788-1b8a-53cc-89ca-be02e93cd231&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T01%3A18%3A32Z&ske=2026-10-06T01%3A18%3A32Z&sks=b&skv=2026-02-06&sig=unThYTx8R2WJY2QI6eCnXBy0RFL8CJTJ%2B%2Bm4lFavSOU%3D'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL "$CUR_URL" -o cur.zip
+          curl -fL "$OLD_URL" -o old.zip
+          mkdir cur old
+          unzip -q cur.zip -d cur
+          unzip -q old.zip -d old
+      - name: Legacy implementation
+        shell: bash
+        run: |
+          O=old/KANG_AI_CAD_v0.6.0/app/lib
+          for f in cad_model.dart cad_command.dart cad_modify.dart entity_editor.dart dxf_writer.dart; do
+            echo "===== OLD:$f ====="
+            sed -n '1,2600p' "$O/$f"
+          done
+          echo "===== OLD:main important regions ====="
+          sed -n '1,220p' "$O/main.dart"
+          sed -n '520,1220p' "$O/main.dart"
+          sed -n '1880,2100p' "$O/main.dart"
+          sed -n '2400,3000p' "$O/main.dart"
+      - name: Current implementation
+        shell: bash
+        run: |
+          R=cur/KANG_AI_CAD_MONOREPO
+          for f in CORE/lib/src/cad_document.dart CORE/lib/src/cad_command.dart CAD2D/lib/src/cad2d_editor.dart RENDERER/lib/src/cad2d_painter.dart FILE_IO/lib/src/dxf_codec.dart FILE_IO/lib/src/kang3d_codec.dart; do
+            echo "===== CUR:$f ====="
+            sed -n '1,2600p' "$R/$f"
+          done
+          echo "===== CUR:photo/home relevant ====="
+          sed -n '1,1200p' "$R/MAIN/app/lib/src/photo_reconstruction_page.dart"
+          sed -n '1,650p' "$R/MAIN/app/lib/src/home_page_v100.dart"
