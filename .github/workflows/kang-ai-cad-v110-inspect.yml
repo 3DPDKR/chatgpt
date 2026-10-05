@@ -1,0 +1,48 @@
+name: KANG AI CAD v1.1.0 Source Inspect
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/kang-ai-cad-v110-inspect.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch existing Drive source only
+        shell: bash
+        env:
+          SOURCE_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-bcec-8209-ad0c-537b62f320f2/raw?se=2026-10-05T02%3A54%3A32Z&sp=r&sv=2026-02-06&sr=b&scid=ee4a1f4b-016f-5ebc-a5ff-6229e9e59fd1&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T01%3A18%3A32Z&ske=2026-10-06T01%3A18%3A32Z&sks=b&skv=2026-02-06&sig=/KotIHV3fp5Vgnt4NfQlvuyyJk17k0%2BzrsoYH3YcUgA%3D'
+        run: |
+          set -euxo pipefail
+          curl --fail --location --retry 3 "$SOURCE_URL" -o source.zip
+          test -s source.zip
+          sha256sum source.zip
+          unzip -l source.zip | sed -n '1,240p'
+          rm -rf src && mkdir src
+          unzip -q source.zip -d src
+      - name: Locate version and UI sources
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "=== VERSION STRINGS ==="
+          grep -RInE "0\.1\.2|0\.1\.0|1\.0\.0|applicationVersion|versionName|versionCode|KANG AI CAD" src --include='*.dart' --include='*.yaml' --include='*.kts' --include='*.xml' --include='*.kt' | head -500 || true
+          echo "=== DWG / FILE OPEN ==="
+          grep -RInE "DWG|dwg|DXF|dxf|STEP|step|STL|stl|SAF|openFile|file.*open" src --include='*.dart' --include='*.kt' --include='*.kts' | head -700 || true
+          echo "=== RELEVANT FILES ==="
+          find src -type f \( -name 'home_page*.dart' -o -name 'app_identity.dart' -o -name 'android_file_bridge.dart' -o -name 'pubspec.yaml' -o -name 'build.gradle.kts' -o -name 'MainActivity.kt' \) -print
+      - name: Print relevant sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in $(find src -type f \( -name 'home_page_v100.dart' -o -name 'home_page.dart' -o -name 'app_identity.dart' -o -name 'android_file_bridge.dart' -o -name 'pubspec.yaml' -o -name 'build.gradle.kts' -o -name 'MainActivity.kt' \)); do
+            echo "===== FILE: $f ====="
+            sed -n '1,260p' "$f"
+          done
