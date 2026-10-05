@@ -1,0 +1,26 @@
+name: KANG v0.6 File Bridge Inspect
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/kang-v060-bridge-inspect.yml"]
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          OLD_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-ba64-8209-a27d-ed9d9d033d59/raw?se=2026-10-05T03%3A13%3A53Z&sp=r&sv=2026-02-06&sr=b&scid=180fd628-1a97-54af-9697-5a4b325022d3&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T23%3A49%3A06Z&ske=2026-10-05T23%3A49%3A06Z&sks=b&skv=2026-02-06&sig=/nNfr2ZAqkifDKeIftG3LItCfJUk6LqwZ2mPpzVLBE4%3D'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL "$OLD_URL" -o old.zip
+          mkdir old && unzip -q old.zip -d old
+          echo "===== METHOD CALLS ====="
+          grep -RInE "MethodChannel|invokeMethod|invokeMapMethod" old/KANG_AI_CAD_v0.6.0/app/lib old/KANG_AI_CAD_v0.6.0/app/android || true
+          echo "===== IO FUNCTIONS ====="
+          grep -nE "Future<void> (saveProject|openProject|exportDxf|importPhoto|autoReconstruct)|saveText|openText|pickImage|openFile|readText" old/KANG_AI_CAD_v0.6.0/app/lib/main.dart || true
+          echo "===== SAVE/OPEN REGION ====="
+          sed -n '1120,1450p' old/KANG_AI_CAD_v0.6.0/app/lib/main.dart
+          echo "===== OLD ANDROID MAIN ====="
+          find old/KANG_AI_CAD_v0.6.0/app/android -type f \( -name '*.kt' -o -name '*.java' \) -print -exec sed -n '1,500p' {} \;
