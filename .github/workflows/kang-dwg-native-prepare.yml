@@ -1,0 +1,130 @@
+name: KANG DWG Native Prepare
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/kang-dwg-native-prepare.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare pinned LibreDWG source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 3 https://github.com/LibreDWG/libredwg/archive/a3d51f13f7afc143c2adb87d4b0e858e24cdac95.tar.gz -o libredwg.tar.gz
+          tar -xzf libredwg.tar.gz
+          mv libredwg-* libredwg
+          grep -n "dwg_write_json" libredwg/src/out_json.h
+          grep -n "dwg_read_file" libredwg/include/dwg.h libredwg/src/dwg.c | head
+      - name: Configure Android arm64
+        shell: bash
+        run: |
+          set -euxo pipefail
+          NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          cmake -S libredwg -B build-dwg \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DLIBREDWG_DISABLE_WRITE=ON \
+            -DLIBREDWG_DISABLE_DXF=OFF \
+            -DLIBREDWG_DISABLE_JSON=OFF
+      - name: Build LibreDWG
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cmake --build build-dwg -j2
+          find build-dwg -type f \( -name 'libredwg*.a' -o -name '*.so' \) -print
+      - name: Build JNI bridge
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat > kang_dwg_jni.c <<'EOF'
+          #include <jni.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+          #include "dwg.h"
+          #include "out_json.h"
+
+          JNIEXPORT jstring JNICALL
+          Java_com_kangsoft_kangaicad_DwgBridge_readDwgJson(JNIEnv *env, jobject thiz, jstring jpath) {
+            (void)thiz;
+            if (!jpath) return NULL;
+            const char *path = (*env)->GetStringUTFChars(env, jpath, NULL);
+            if (!path) return NULL;
+            Dwg_Data dwg;
+            memset(&dwg, 0, sizeof(dwg));
+            int err = dwg_read_file(path, &dwg);
+            (*env)->ReleaseStringUTFChars(env, jpath, path);
+            if (err >= DWG_ERR_CRITICAL) {
+              dwg_free(&dwg);
+              jclass ex = (*env)->FindClass(env, "java/io/IOException");
+              (*env)->ThrowNew(env, ex, "DWG decode failed");
+              return NULL;
+            }
+            char *buf = NULL;
+            size_t len = 0;
+            FILE *mem = open_memstream(&buf, &len);
+            if (!mem) {
+              dwg_free(&dwg);
+              jclass ex = (*env)->FindClass(env, "java/io/IOException");
+              (*env)->ThrowNew(env, ex, "DWG JSON buffer failed");
+              return NULL;
+            }
+            Bit_Chain dat;
+            memset(&dat, 0, sizeof(dat));
+            dat.fh = mem;
+            dat.version = dwg.header.version;
+            int werr = dwg_write_json(&dat, &dwg);
+            fflush(mem);
+            fclose(mem);
+            dwg_free(&dwg);
+            if (werr >= DWG_ERR_CRITICAL || !buf) {
+              free(buf);
+              jclass ex = (*env)->FindClass(env, "java/io/IOException");
+              (*env)->ThrowNew(env, ex, "DWG JSON export failed");
+              return NULL;
+            }
+            jstring out = (*env)->NewStringUTF(env, buf);
+            free(buf);
+            return out;
+          }
+          EOF
+          NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          TC="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          SYS="$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+          LIB=$(find build-dwg -type f -name 'libredwg.a' | head -1)
+          test -n "$LIB"
+          "$TC/aarch64-linux-android24-clang" -shared -fPIC -O2 \
+            -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
+            -Ilibredwg/include -Ilibredwg/src -Ibuild-dwg \
+            kang_dwg_jni.c "$LIB" \
+            -Wl,-z,max-page-size=16384 -llog -lm -lz \
+            -o libkang_dwg.so
+          file libkang_dwg.so
+          "$TC/llvm-readelf" -l libkang_dwg.so | grep -E 'LOAD|Align' || true
+      - name: Package DWG engine
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p out/arm64-v8a
+          cp libkang_dwg.so out/arm64-v8a/
+          cat > out/README.txt <<'EOF'
+          KANG AI CAD DWG reader native component.
+          Prepared from pinned LibreDWG commit a3d51f13f7afc143c2adb87d4b0e858e24cdac95.
+          Target: Android arm64-v8a, API 24+, 16KiB page-aligned.
+          EOF
+          zip -r KANG_DWG_NATIVE_ARM64_v1.1.0.zip out
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KANG_DWG_NATIVE_ARM64_v1.1.0
+          path: KANG_DWG_NATIVE_ARM64_v1.1.0.zip
+          if-no-files-found: error
