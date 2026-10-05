@@ -1,0 +1,22 @@
+name: KANG Drive Direct Probe
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/kang-drive-direct-probe.yml"]
+permissions: {contents: read}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe direct access to existing Drive project files
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 2 "https://drive.usercontent.google.com/download?id=1YB8O4DhkQ7xV7W3mNm18shhFuwtyhbpk&export=download&confirm=t" -o source.zip
+          file source.zip
+          unzip -t source.zip | tail -3
+          curl -fL --retry 2 "https://drive.usercontent.google.com/download?id=1bRCZza_jZLp9f1qdDv6iTW60EgK_HVEx&export=download&confirm=t" -o fw.tar.zst
+          file fw.tar.zst
+          tar --zstd -tf fw.tar.zst | head -5 || test ${PIPESTATUS[0]} -eq 0
