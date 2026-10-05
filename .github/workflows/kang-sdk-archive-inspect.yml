@@ -1,0 +1,55 @@
+name: KANG Shared SDK Archive Inspect
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/kang-sdk-archive-inspect.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect Drive shared SDK archives
+        env:
+          FLUTTERFRAMEWORK_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-5ed4-8209-be8c-fdcfe5dc2713/raw?se=2026-10-05T03%3A03%3A45Z&sp=r&sv=2026-02-06&sr=b&scid=fa9847de-4309-5838-8866-c7801afadd55&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T22%3A38%3A43Z&ske=2026-10-05T22%3A38%3A43Z&sks=b&skv=2026-02-06&sig=tF2QCpUjKRFyaZgR7DlL42YuCNW9izdtF0L6jI1pO0M%3D'
+          FLUTTERCACHE_URL: 'https://sdmntprkoreacentral.oaiusercontent.com/files/00000000-6730-8206-ae85-e574d7cf83e8/raw?se=2026-10-05T03%3A03%3A50Z&sp=r&sv=2026-02-06&sr=b&scid=c3925dc8-becc-56ca-bba0-1c25d32b8b14&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T18%3A00%3A42Z&ske=2026-10-05T18%3A00%3A42Z&sks=b&skv=2026-02-06&sig=kcE0V9cvPt%2BDz5uysCZe0o4fM0c3DE7Vvnq636QKur4%3D'
+          DARTRUNTIME_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-a700-8209-899b-b4ece92a6139/raw?se=2026-10-05T03%3A03%3A58Z&sp=r&sv=2026-02-06&sr=b&scid=293c0dee-4cec-503b-8e11-09b771c5764f&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T23%3A18%3A32Z&ske=2026-10-05T23%3A18%3A32Z&sks=b&skv=2026-02-06&sig=sgxj5d0w08bQmRQ1p7ud3cyeuYS8ybb3XNadgNIkIck%3D'
+          DARTLIBRARIES_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-6344-8209-9fb9-d49262005bf7/raw?se=2026-10-05T03%3A04%3A03Z&sp=r&sv=2026-02-06&sr=b&scid=8c174558-a1e4-50d3-8f1b-cfdd4fba527b&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T00%3A10%3A50Z&ske=2026-10-06T00%3A10%3A50Z&sks=b&skv=2026-02-06&sig=cbtTABASCVjIvmj6bXyqTjpVJXaiX7e8daCRpfP%2Bbzc%3D'
+          DARTFRONTEND_URL: 'https://sdmntprkoreacentral.oaiusercontent.com/files/00000000-cbc0-8206-b84d-a446a89adea2/raw?se=2026-10-05T03%3A04%3A11Z&sp=r&sv=2026-02-06&sr=b&scid=cc6a54bd-bb1a-59d6-a923-db849272ec3c&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T01%3A18%3A35Z&ske=2026-10-06T01%3A18%3A35Z&sks=b&skv=2026-02-06&sig=5SjLEtR9q/hYMoK20T1JY/8JemPKd8iaWlnF/lcS8Zc%3D'
+          DARTTOOLING_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-41c4-8209-9e95-fbea47c5b8b7/raw?se=2026-10-05T03%3A04%3A15Z&sp=r&sv=2026-02-06&sr=b&scid=8178c6cb-004a-5a70-8935-7dc7762744d6&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T00%3A10%3A50Z&ske=2026-10-06T00%3A10%3A50Z&sks=b&skv=2026-02-06&sig=ViN9%2B3skTkapDpK%2BHJ2JeMy1r6VIxq78g%2ByHU6Kl8rM%3D'
+          DARTANALYZER_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-65c4-8209-adda-77c9715a3cd6/raw?se=2026-10-05T03%3A04%3A22Z&sp=r&sv=2026-02-06&sr=b&scid=ddb0b104-0c58-507f-b0df-478d76f88502&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T22%3A02%3A43Z&ske=2026-10-05T22%3A02%3A43Z&sks=b&skv=2026-02-06&sig=DVkbP43mDe8hJpmZmvw6DShN9MciL9YelnWDGIb3A4w%3D'
+          ENGINEHOST_URL: 'https://sdmntprseasia.oaiusercontent.com/files/00000000-cb3c-8207-9c54-18e5a0b97c9c/raw?se=2026-10-05T03%3A04%3A35Z&sp=r&sv=2026-02-06&sr=b&scid=f704f6c2-a003-57f0-bd61-fa6c54983a6b&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T02%3A25%3A03Z&ske=2026-10-06T02%3A25%3A03Z&sks=b&skv=2026-02-06&sig=4nRSB6Ieqzsw4EFUnante2yyV6Wp9%2BgIL8K4p4ptUeg%3D'
+          ENGINEARM64_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-c500-8209-932e-29e2075354c3/raw?se=2026-10-05T03%3A04%3A45Z&sp=r&sv=2026-02-06&sr=b&scid=b53376d1-0af6-5ae3-8203-8d452d8a011a&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T23%3A18%3A32Z&ske=2026-10-05T23%3A18%3A32Z&sks=b&skv=2026-02-06&sig=miWd2a1GgL9CS978AnywPHbx/%2BWY9kT8lIWFVRTbiO0%3D'
+          ANDROIDFIXED_URL: 'https://sdmntprseasia.oaiusercontent.com/files/00000000-36f4-8207-9fef-be30c772bba3/raw?se=2026-10-05T03%3A04%3A54Z&sp=r&sv=2026-02-06&sr=b&scid=4063e551-e8bf-5f86-907c-55ebd2bd4a09&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T01%3A36%3A36Z&ske=2026-10-06T01%3A36%3A36Z&sks=b&skv=2026-02-06&sig=Bstx5wjcshUsQdyank2cVCCTNCbTf9hGF8s416f8Jc4%3D'
+          NDKRUNTIME_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-05f4-8209-a9be-14b299848536/raw?se=2026-10-05T03%3A04%3A59Z&sp=r&sv=2026-02-06&sr=b&scid=ba699d79-3ef8-544c-b996-fa9e0f74c9f8&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T17%3A56%3A20Z&ske=2026-10-05T17%3A56%3A20Z&sks=b&skv=2026-02-06&sig=T4nOf%2BASdESvh1ObHxdx8hDgGjLl6ttDeQVwiHLfFaE%3D'
+          PUBCACHE_URL: 'https://sdmntprseasia.oaiusercontent.com/files/00000000-cb14-8207-82cd-f108376d2b46/raw?se=2026-10-05T03%3A05%3A31Z&sp=r&sv=2026-02-06&sr=b&scid=8386be77-f378-501f-8c95-7f86463e039e&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T00%3A48%3A48Z&ske=2026-10-06T00%3A48%3A48Z&sks=b&skv=2026-02-06&sig=GWJZhvufMFVTWR2hroh7E7dveWOGrovuSU6midVANiM%3D'
+          GRADLEZIP_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-94f4-8209-a5d8-1d4765daae14/raw?se=2026-10-05T03%3A05%3A48Z&sp=r&sv=2026-02-06&sr=b&scid=31597fb8-cd92-57fc-a0df-cb65d100f9f1&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-04T22%3A02%3A43Z&ske=2026-10-05T22%3A02%3A43Z&sks=b&skv=2026-02-06&sig=4r2ndSVcFbMDg63MhGkvk7Zfgq1FqV3CDF3R%2BdG0ZzA%3D'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kang-sdk
+          function inspect_zst() {
+            n="$1"; u="$2";
+            echo "===== $n ====="
+            curl -fL --retry 3 "$u" -o "/tmp/kang-sdk/$n.tar.zst"
+            ls -lh "/tmp/kang-sdk/$n.tar.zst"
+            tar --zstd -tf "/tmp/kang-sdk/$n.tar.zst" | head -120 || true
+          }
+          inspect_zst flutter_framework "$FLUTTERFRAMEWORK_URL"
+          inspect_zst flutter_cache "$FLUTTERCACHE_URL"
+          inspect_zst dart_runtime "$DARTRUNTIME_URL"
+          inspect_zst dart_libraries "$DARTLIBRARIES_URL"
+          inspect_zst dart_frontend "$DARTFRONTEND_URL"
+          inspect_zst dart_tooling "$DARTTOOLING_URL"
+          inspect_zst dart_analyzer "$DARTANALYZER_URL"
+          inspect_zst engine_host "$ENGINEHOST_URL"
+          inspect_zst engine_arm64 "$ENGINEARM64_URL"
+          inspect_zst android_fixed "$ANDROIDFIXED_URL"
+          inspect_zst ndk_runtime "$NDKRUNTIME_URL"
+          inspect_zst pub_cache "$PUBCACHE_URL"
+          echo "===== gradle zip ====="
+          curl -fL --retry 3 "$GRADLEZIP_URL" -o /tmp/kang-sdk/gradle.zip
+          unzip -l /tmp/kang-sdk/gradle.zip | head -120 || true
