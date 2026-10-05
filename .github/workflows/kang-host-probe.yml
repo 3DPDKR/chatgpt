@@ -1,0 +1,30 @@
+name: KANG Shared Build Host Probe
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/kang-host-probe.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe pre-existing host only
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "JAVA"; java -version 2>&1 || true
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_SDK_ROOT" | head -80 || true
+          echo "NDK"; ls -la "$ANDROID_SDK_ROOT/ndk" || true
+          for d in "$ANDROID_SDK_ROOT"/ndk/*; do [ -d "$d" ] && { echo "--- $d"; cat "$d/source.properties" 2>/dev/null | head -20; find "$d/toolchains/llvm/prebuilt" -path '*/bin/clang' -type f -print | head; }; done
+          echo "BUILD TOOLS"; ls "$ANDROID_SDK_ROOT/build-tools" || true
+          echo "PLATFORMS"; ls "$ANDROID_SDK_ROOT/platforms" || true
+          echo "CMAKE"; cmake --version || true
+          echo "NINJA"; ninja --version || true
+          echo "FLUTTER"; command -v flutter || true
+          echo "DART"; command -v dart || true
