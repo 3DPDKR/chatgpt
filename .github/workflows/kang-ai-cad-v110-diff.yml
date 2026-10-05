@@ -1,0 +1,68 @@
+name: KANG AI CAD v1.1.0 Legacy Diff
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/kang-ai-cad-v110-diff.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Drive sources
+        shell: bash
+        env:
+          CUR_URL: 'https://sdmntprjapaneast.oaiusercontent.com/files/00000000-ed28-8209-9876-50859dc9466a/raw?se=2026-10-05T02%3A59%3A41Z&sp=r&sv=2026-02-06&sr=b&scid=e424a82f-2cd4-58dd-a61b-667f4c188dbe&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T02%3A24%3A14Z&ske=2026-10-06T02%3A24%3A14Z&sks=b&skv=2026-02-06&sig=uZ3LcW4CuYIicId01HAZo0jfDDdnPTws/DHmlFaLKJs%3D'
+          OLD_URL: 'https://sdmntprkoreacentral.oaiusercontent.com/files/00000000-91b8-8206-8f7e-9fa728685693/raw?se=2026-10-05T02%3A59%3A45Z&sp=r&sv=2026-02-06&sr=b&scid=0f703568-b612-585b-96e8-dbe5d30d5807&skoid=b1bca990-dcac-4c31-8ca1-ac563cf24c54&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-05T02%3A24%3A14Z&ske=2026-10-06T02%3A24%3A14Z&sks=b&skv=2026-02-06&sig=2hkF1SBuMGh2Jb/WIANCXjUNfctB6qwb4SXGTTZg78E%3D'
+        run: |
+          set -euxo pipefail
+          curl --fail --location --retry 3 "$CUR_URL" -o current.zip
+          curl --fail --location --retry 3 "$OLD_URL" -o old.zip
+          rm -rf cur old && mkdir cur old
+          unzip -q current.zip -d cur
+          unzip -q old.zip -d old
+          echo "CURRENT ROOTS"; find cur -maxdepth 2 -type d | head -60
+          echo "OLD ROOTS"; find old -maxdepth 3 -type d | head -100
+
+      - name: Locate legacy CAD implementations
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "===== OLD feature hits ====="
+          grep -RInE "Arc|arc|Polyline|polyline|rounded|Rounded|R 사각형|Fillet|fillet|Chamfer|chamfer|coincident|fixedPoint|equalLength|같은 길이|고정점|점 일치" old --include='*.dart' | head -1200 || true
+          echo "===== CURRENT feature hits ====="
+          grep -RInE "Arc|arc|Polyline|polyline|rounded|Rounded|R 사각형|Fillet|fillet|Chamfer|chamfer|coincident|fixedPoint|equalLength|같은 길이|고정점|점 일치" cur --include='*.dart' | head -1200 || true
+          echo "===== OLD dart files ====="
+          find old -type f -name '*.dart' -print | head -500
+
+      - name: Print legacy core/editor/codec candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in $(grep -RlE "Fillet|Chamfer|Polyline|fixedPoint|equalLength|coincident" old --include='*.dart' | head -30); do
+            echo "===== OLD FILE: $f ====="
+            sed -n '1,1200p' "$f"
+          done
+
+      - name: Print current photo persistence candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=$(find cur -type d -name KANG_AI_CAD_MONOREPO | head -1)
+          echo "===== CAD DOCUMENT ====="
+          sed -n '1,720p' "$ROOT/CORE/lib/src/cad_document.dart"
+          echo "===== KANG3D CODEC ====="
+          sed -n '1,700p' "$ROOT/FILE_IO/lib/src/kang3d_codec.dart"
+          echo "===== PHOTO PAGE ====="
+          sed -n '1,1000p' "$ROOT/MAIN/app/lib/src/photo_reconstruction_page.dart"
+          echo "===== HOME PHOTO COMMIT ====="
+          sed -n '1,240p' "$ROOT/MAIN/app/lib/src/home_page_v100.dart"
+          echo "===== APP TESTS ====="
+          for f in "$ROOT"/MAIN/app/test/*.dart; do echo "---- $f ----"; sed -n '1,700p' "$f"; done
